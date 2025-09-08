@@ -5,6 +5,7 @@ set(GAME_SOURCES
   backgammon/backgammon.h
   bargaining/bargaining.cc
   bargaining/bargaining.h
+  bargaining/bargaining_instances1000.cc
   battleship/battleship.cc
   battleship/battleship.h
   battleship/battleship_types.h
@@ -49,6 +50,8 @@ set(GAME_SOURCES
   coordinated_mp/coordinated_mp.h
   crazy_eights/crazy_eights.cc
   crazy_eights/crazy_eights.h
+  cribbage/cribbage.cc
+  cribbage/cribbage.h
   cursor_go/cursor_go.cc
   cursor_go/cursor_go.h
   dark_chess/dark_chess.cc
@@ -93,18 +96,26 @@ set(GAME_SOURCES
   hearts/hearts.h
   hex/hex.cc
   hex/hex.h
+  hive/hive.cc
+  hive/hive.h
+  hive/hive_board.cc
+  hive/hive_board.h
   kriegspiel/kriegspiel.cc
   kriegspiel/kriegspiel.h
   kuhn_poker/kuhn_poker.cc
   kuhn_poker/kuhn_poker.h
   laser_tag/laser_tag.cc
   laser_tag/laser_tag.h
+  latent_ttt/latent_ttt.cc
+  latent_ttt/latent_ttt.h
   leduc_poker/leduc_poker.cc
   leduc_poker/leduc_poker.h
   lewis_signaling/lewis_signaling.cc
   lewis_signaling/lewis_signaling.h
   liars_dice/liars_dice.cc
   liars_dice/liars_dice.h
+  lines_of_action/lines_of_action.cc
+  lines_of_action/lines_of_action.h
   maedn/maedn.cc
   maedn/maedn.h
   mancala/mancala.cc
@@ -210,6 +221,9 @@ endif()
 add_library (games OBJECT ${GAME_SOURCES})
 
 target_include_directories (games PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories (games PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}../pybind11_abseil)
+target_include_directories (games PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}../pybind11_json)
+target_include_directories (games PUBLIC ${Python3_INCLUDE_DIRS})
 
 if (${OPEN_SPIEL_BUILD_WITH_HANABI})
   add_subdirectory(hanabi)
@@ -373,6 +387,10 @@ add_executable(crazy_eights_test crazy_eights/crazy_eights_test.cc ${OPEN_SPIEL_
                $<TARGET_OBJECTS:tests>)
 add_test(crazy_eights_test crazy_eights_test)
 
+add_executable(cribbage_test cribbage/cribbage_test.cc ${OPEN_SPIEL_OBJECTS}
+               $<TARGET_OBJECTS:tests>)
+add_test(cribbage_test cribbage_test)
+
 add_executable(crowd_modelling_test mfg/crowd_modelling_test.cc ${OPEN_SPIEL_OBJECTS}
                $<TARGET_OBJECTS:tests>)
 add_test(crowd_modelling_test crowd_modelling_test)
@@ -471,6 +489,10 @@ add_executable(hex_test hex/hex_test.cc ${OPEN_SPIEL_OBJECTS}
                $<TARGET_OBJECTS:tests>)
 add_test(hex_test hex_test)
 
+add_executable(hive_test hive/hive_test.cc ${OPEN_SPIEL_OBJECTS}
+               $<TARGET_OBJECTS:tests>)
+add_test(hive_test hive_test)
+
 add_executable(kriegspiel_test kriegspiel/kriegspiel_test.cc ${OPEN_SPIEL_OBJECTS}
         $<TARGET_OBJECTS:tests>)
 add_test(kriegspiel_test kriegspiel_test)
@@ -479,6 +501,10 @@ add_executable(kuhn_poker_test kuhn_poker/kuhn_poker_test.cc ${OPEN_SPIEL_OBJECT
                $<TARGET_OBJECTS:tests>
                $<TARGET_OBJECTS:algorithms>)
 add_test(kuhn_poker_test kuhn_poker_test)
+
+add_executable(latent_ttt_test latent_ttt/latent_ttt_test.cc ${OPEN_SPIEL_OBJECTS}
+               $<TARGET_OBJECTS:tests>)
+add_test(latent_ttt_test latent_ttt_test)
 
 add_executable(leduc_poker_test leduc_poker/leduc_poker_test.cc ${OPEN_SPIEL_OBJECTS}
                $<TARGET_OBJECTS:tests>
@@ -493,6 +519,10 @@ add_executable(liars_dice_test liars_dice/liars_dice_test.cc ${OPEN_SPIEL_OBJECT
                $<TARGET_OBJECTS:tests>
                $<TARGET_OBJECTS:algorithms>)
 add_test(liars_dice_test liars_dice_test)
+
+add_executable(lines_of_action_test lines_of_action/lines_of_action_test.cc ${OPEN_SPIEL_OBJECTS}
+               $<TARGET_OBJECTS:tests>)
+add_test(lines_of_action_test lines_of_action_test)
 
 add_executable(maedn_test maedn/maedn_test.cc ${OPEN_SPIEL_OBJECTS}
                $<TARGET_OBJECTS:tests>)

@@ -19,11 +19,7 @@
 #include <iostream>
 #include <map>
 #include <memory>
-#include <numeric>
-#include <random>
-#include <sstream>
 #include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -32,6 +28,7 @@
 #include "open_spiel/abseil-cpp/absl/synchronization/mutex.h"
 #include "open_spiel/abseil-cpp/absl/types/optional.h"
 #include "open_spiel/abseil-cpp/absl/types/span.h"
+#include "open_spiel/json/include/nlohmann/json.hpp"
 #include "open_spiel/game_parameters.h"
 #include "open_spiel/observer.h"
 #include "open_spiel/spiel_globals.h"
@@ -150,6 +147,12 @@ struct GameType {
     return provides_observation_tensor
         || provides_observation_string;
   }
+
+  // Is this a concrete game, i.e. an actual game? Most games in OpenSpiel are
+  // concrete games. Some games that are registered are not concrete games; for
+  // example, game wrappers and other game transforms, or games that are
+  // constructed from a file (e.g. efg_game).
+  bool is_concrete = true;
 };
 
 // Information about a concrete Game instantiation.
@@ -205,6 +208,24 @@ using HistoryDistribution =
 // Forward declarations.
 class Game;
 class Observer;
+
+// Structured information specifying the state of a game.
+// Added to the API as part of Open Spiel 2.0:
+// https://github.com/google-deepmind/open_spiel/issues/1340.
+// The StateStruct makes explicit and provides an easy interface to the
+// information encoded in the state string. Accessible via the State::ToStruct
+// and State::ToJson methods.
+struct StateStruct {
+  virtual ~StateStruct() = default;
+  StateStruct() = default;
+  StateStruct(std::string json);
+
+  std::string ToJson() const {
+    return to_json_base().dump();
+  }
+
+  virtual nlohmann::json to_json_base() const = 0;
+};
 
 // An abstract class that represents a state of the game.
 class State {
@@ -319,6 +340,17 @@ class State {
     return ToString() == other.ToString();
   }
 
+  // Returns a StateStruct representation of the state.
+  virtual std::unique_ptr<StateStruct> ToStruct() const {
+    SpielFatalError("ToStruct is not implemented.");
+    return nullptr;
+  }
+
+  // Returns a JSON string representation of the state.
+  std::string ToJson() const {
+    return ToStruct()->ToJson();
+  }
+
   // Is this a terminal state? (i.e. has the game ended?)
   virtual bool IsTerminal() const = 0;
 
@@ -328,17 +360,15 @@ class State {
   // implemented. The default is to return 0 except at terminal states, where
   // the terminal returns are returned.
   //
-  // Note 1: should not be called at chance nodes (undefined and crashes).
-  // Note 2: This must agree with Returns(). That is, for any state S_t,
-  //         Returns(St) = Sum(Rewards(S_0), Rewards(S_1)... Rewards(S_t)).
-  //         The default implementation is only correct for games that only
-  //         have a final reward. Games with intermediate rewards must override
-  //         both this method and Returns().
+  // Note: This must agree with Returns(). That is, for any state S_t,
+  //       Returns(St) = Sum(Rewards(S_0), Rewards(S_1)... Rewards(S_t)).
+  //       The default implementation is only correct for games that only
+  //       have a final reward. Games with intermediate rewards must override
+  //       both this method and Returns().
   virtual std::vector<double> Rewards() const {
     if (IsTerminal()) {
       return Returns();
     } else {
-      SPIEL_CHECK_FALSE(IsChanceNode());
       return std::vector<double>(num_players_, 0.0);
     }
   }
@@ -429,6 +459,11 @@ class State {
 
   // Is this a first state in the game, i.e. the initial state (root node)?
   bool IsInitialState() const { return history_.empty(); }
+
+  // Is this a first non-chance node in the game, i.e. the first decision or
+  // simultaneous move node (or terminal). Note: only works with
+  // ChanceMode::kExplicitStochastic.
+  bool IsInitialNonChanceState() const;
 
   // For imperfect information games. Returns an identifier for the current
   // information state for the specified player.
@@ -1059,7 +1094,9 @@ class GameRegisterer {
 
   static std::vector<std::string> GamesWithKnownIssues();
   static std::vector<std::string> RegisteredNames();
+  static std::vector<std::string> RegisteredConcreteNames();
   static std::vector<GameType> RegisteredGames();
+  static std::vector<GameType> RegisteredConcreteGames();
   static bool IsValidName(const std::string& short_name);
   static void RegisterGame(const GameType& game_type, CreateFunc creator);
 
@@ -1072,6 +1109,9 @@ class GameRegisterer {
     static std::map<std::string, std::pair<GameType, CreateFunc>> impl;
     return impl;
   }
+
+  static std::vector<std::string> GameTypesToShortNames(
+      const std::vector<GameType>& game_types);
 };
 
 // Returns true if the game is registered, false otherwise.
